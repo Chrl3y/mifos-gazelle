@@ -1,0 +1,400 @@
+{
+  "info": {
+    "name": "Nova Microfinance – Mifos/Fineract API Collection",
+    "description": "Fineract REST API samples mapped to the Nova/Helaplus issues register. Each request is tagged to the issue it addresses.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/fineract-provider/api/v1", "type": "string" },
+    { "key": "tenantId", "value": "default", "type": "string" },
+    { "key": "authToken", "value": "Basic bWlmb3M6cGFzc3dvcmQ=", "type": "string" }
+  ],
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "mifos" },
+      { "key": "password", "value": "password" }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. LOAN LIFECYCLE",
+      "item": [
+        {
+          "name": "[ISS-001] Get Loan Summary – Check Outstanding Principal Only",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/loans/{{loanId}}?fields=id,accountNo,clientName,summary,approvedPrincipal",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Use summary.principalOutstanding ONLY as top-up offset. NOT totalOutstanding. Fixes ISS-001."
+          }
+        },
+        {
+          "name": "[ISS-001] Get Loan Repayment Schedule – Future Interest",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/loans/{{loanId}}?associations=repaymentSchedule&fields=id,accountNo,repaymentSchedule",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Get full schedule to sum future interest (uncompleted periods). Correct top-up offset = principalOutstanding ONLY."
+          }
+        },
+        {
+          "name": "[ISS-013] Pause Interest on Frozen Loan",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/loans/{{loanId}}/interestpauses",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-03-03\",\n  \"endDate\": \"2026-12-31\",\n  \"dateFormat\": \"yyyy-MM-dd\",\n  \"locale\": \"en\"\n}"
+            },
+            "description": "Freezes interest accrual on a loan. Use to implement loan freeze (ISS-013). Requires LoanInterestPauseApiResource."
+          }
+        },
+        {
+          "name": "[ISS-013] Reschedule Loan (Restructure)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/rescheduleloans",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loanId\": 123,\n  \"rescheduleFromDate\": \"01 March 2026\",\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\",\n  \"adjustedDueDate\": \"01 June 2026\",\n  \"rescheduleReasonId\": 1,\n  \"submittedOnDate\": \"03 March 2026\"\n}"
+            },
+            "description": "Create loan reschedule request. Addresses ISS-013 – restructuring workflow."
+          }
+        },
+        {
+          "name": "[ISS-004] Write-Off / Charge-Off Repossessed Loan",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/loans/{{loanId}}?command=writeoff",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionDate\": \"03 March 2026\",\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\",\n  \"note\": \"Boda repossession – asset recovered\"\n}"
+            },
+            "description": "Temporary workaround for repossession (ISS-004) until repossession module is built. Use charge-off for NPL classification."
+          }
+        },
+        {
+          "name": "[ISS-004] Charge-Off (NPL) Repossessed Loan",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/loans/{{loanId}}?command=chargeOff",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionDate\": \"03 March 2026\",\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\"\n}"
+            },
+            "description": "Classifies loan as charged-off (NPL). Removes from PAR. Use for repossessed bikes (ISS-004)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. REPAYMENTS & COLLECTIONS",
+      "item": [
+        {
+          "name": "[ISS-HUB-001] Post Loan Repayment (MTN Mobile Money)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/loans/{{loanId}}/transactions?command=repayment",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\",\n  \"transactionDate\": \"03 March 2026\",\n  \"transactionAmount\": 150000,\n  \"paymentTypeId\": 2,\n  \"receiptNumber\": \"MTN-1234567890\",\n  \"note\": \"MTN MoMo – HUB reconciliation\"\n}"
+            },
+            "description": "Post repayment via API. paymentTypeId=2 for MTN. Fixes ISS-HUB-001 – replaces PHP HUB button that throws undefined $loan."
+          }
+        },
+        {
+          "name": "[ISS-HUB-001] Post Loan Repayment (Airtel Money)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/loans/{{loanId}}/transactions?command=repayment",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\",\n  \"transactionDate\": \"03 March 2026\",\n  \"transactionAmount\": 200000,\n  \"paymentTypeId\": 3,\n  \"receiptNumber\": \"AIRTEL-9876543210\",\n  \"note\": \"Airtel Money – HUB reconciliation\"\n}"
+            },
+            "description": "Post repayment via API. paymentTypeId=3 for Airtel. Direct API bypass for HUB ISS-HUB-001."
+          }
+        },
+        {
+          "name": "[ISS-HUB-006] Post Down Payment on New Loan",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/loans/{{loanId}}?command=downPayment",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionDate\": \"03 March 2026\",\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\",\n  \"transactionAmount\": 500000,\n  \"paymentTypeId\": 2,\n  \"receiptNumber\": \"USSD-DOWN-001\",\n  \"note\": \"USSD down payment – new loan setup\"\n}"
+            },
+            "description": "Correctly routes down payment to new loan. Use ?command=downPayment NOT ?command=repayment. Fixes ISS-HUB-006 routing logic."
+          }
+        },
+        {
+          "name": "[ISS-011] Savings-to-Loan Transfer (Wallet Offset)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/accounttransfers",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromOfficeId\": 1,\n  \"fromClientId\": {{clientId}},\n  \"fromAccountType\": 2,\n  \"fromAccountId\": {{savingsAccountId}},\n  \"toOfficeId\": 1,\n  \"toClientId\": {{clientId}},\n  \"toAccountType\": 1,\n  \"toAccountId\": {{loanAccountId}},\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\",\n  \"transferDate\": \"03 March 2026\",\n  \"transferAmount\": 300000,\n  \"transferDescription\": \"Wallet-to-loan offset – loan clearance\"\n}"
+            },
+            "description": "Transfer from savings wallet (accountType=2) to loan account (accountType=1). Implements wallet-to-loan offset (ISS-011). Cases: Anyayo Doreen, Adongo Winnie."
+          }
+        },
+        {
+          "name": "[RPT-004] Loans Due Today Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/runreports/LoansDueToday?R_date=2026-03-03&output-type=JSON",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Get loans with repayments due today. Addresses RPT-004 (limited scope). For rolling overdue add R_fromDate parameter."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. GL & ACCOUNTING",
+      "item": [
+        {
+          "name": "[MF-002] Get All GL Accounts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/glaccounts?type=1&disabled=false",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "List all active GL accounts by type. type=1=ASSET, 2=LIABILITY, 3=EQUITY, 4=INCOME, 5=EXPENSE. Use to find correct IDs for product mapping."
+          }
+        },
+        {
+          "name": "[MF-002] Get Loan Product GL Mappings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/loanproducts/{{productId}}?template=true",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Get full loan product config including accountingMappings. Diagnose productToAccountMapping.not.found (MF-002)."
+          }
+        },
+        {
+          "name": "[MF-002] Update Loan Product GL Mapping (Full Required Set)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/loanproducts/{{productId}}",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountingRule\": 2,\n  \"fundSourceAccountId\": 1,\n  \"loanPortfolioAccountId\": 2,\n  \"transfersInSuspenseAccountId\": 3,\n  \"interestOnLoanAccountId\": 4,\n  \"incomeFromFeeAccountId\": 5,\n  \"incomeFromPenaltyAccountId\": 6,\n  \"writeOffAccountId\": 7,\n  \"overpaymentLiabilityAccountId\": 8\n}",
+              "description": "accountingRule: 1=NONE, 2=CASH_BASED, 3=ACCRUAL_PERIODIC, 4=ACCRUAL_UPFRONT. All 8 GL IDs required. Fixes MF-002."
+            }
+          }
+        },
+        {
+          "name": "[ISS-010] Create Manual Journal Entry (Missed Disbursement)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/journalentries",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"officeId\": 1,\n  \"transactionDate\": \"03 March 2026\",\n  \"dateFormat\": \"dd MMMM yyyy\",\n  \"locale\": \"en\",\n  \"currencyCode\": \"UGX\",\n  \"debits\": [\n    {\n      \"glAccountId\": 2,\n      \"amount\": 1500000,\n      \"comments\": \"Manual disbursement backfill – ISS-010\"\n    }\n  ],\n  \"credits\": [\n    {\n      \"glAccountId\": 1,\n      \"amount\": 1500000,\n      \"comments\": \"Fund source – manual disbursement\"\n    }\n  ],\n  \"referenceNumber\": \"MANUAL-DISB-001\",\n  \"comments\": \"Backfill for manual disbursement not captured in GL (ISS-010)\"\n}"
+            },
+            "description": "Backfill missing GL entries for manual disbursements (ISS-010). Debit Loan Portfolio, Credit Fund Source."
+          }
+        },
+        {
+          "name": "Get Trial Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/runreports/TrialBalance?R_startDate=2026-01-01&R_endDate=2026-03-03&output-type=JSON",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Validate GL balance. Use after reconciliation to confirm debits = credits."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. CLIENTS & TRANSFERS",
+      "item": [
+        {
+          "name": "[MF-001] Transfer Client Between Offices (Correct Payload)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/clients/{{clientId}}?command=transfer",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destinationGroupId\": 2,\n  \"transferActiveLoans\": false,\n  \"inheritDestinationGroupLoanOfficer\": true,\n  \"note\": \"Branch transfer – MF-001 fix: no transferDate field\"\n}",
+              "description": "IMPORTANT: Do NOT include transferDate in payload. System auto-dates. Fixes MF-001."
+            }
+          }
+        },
+        {
+          "name": "Search Client by Phone/Name",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/clients?displayName={{clientName}}&limit=10",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Search for client before operations. Always confirm correct client before posting transactions."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. STANDING INSTRUCTIONS",
+      "item": [
+        {
+          "name": "[ISS-006] List All Active Standing Instructions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/standinginstructions?status=active&limit=100",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Review all active standing instructions. Check fromAccount balances before execution date. Addresses ISS-006."
+          }
+        },
+        {
+          "name": "[ISS-006] Disable / Cancel Standing Instruction",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/standinginstructions/{{standingInstructionId}}?command=disable",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "Disable standing instruction until physical deposit confirmed. Addresses ISS-006 pre-deposit risk."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. REPORTING",
+      "item": [
+        {
+          "name": "[RPT-001] Aging Report with Date Parameter",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/runreports/LoanArrearsAging?R_asOfDate=2026-03-03&output-type=JSON",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Run aging report with as-of date. Requires RPT-001 enhancement to add R_asOfDate parameter to report SQL."
+          }
+        },
+        {
+          "name": "[RPT-006] Portfolio Snapshot – All Active Loans",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/loans?loanStatus=active&limit=500&fields=id,accountNo,clientName,loanProductName,loanOfficerName,summary,inArrears",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Basis for portfolio snapshot. Addresses RPT-006. Process summary.totalOverdue to build PAR buckets."
+          }
+        },
+        {
+          "name": "[RPT-003] Debug Aging Summary – Direct SQL Equivalent",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/runreports/LoanAgeingSummary?output-type=JSON",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "Run aging summary. If blank (RPT-003 bug), check SQL GROUP BY / missing parameters. See fix blueprint."
+          }
+        },
+        {
+          "name": "List Available Reports",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reports?genericResultSet=true",
+            "header": [
+              { "key": "Fineract-Platform-TenantId", "value": "{{tenantId}}" },
+              { "key": "Authorization", "value": "{{authToken}}" }
+            ],
+            "description": "List all configured reports and their parameters. Use to audit report configuration."
+          }
+        }
+      ]
+    }
+  ]
+}

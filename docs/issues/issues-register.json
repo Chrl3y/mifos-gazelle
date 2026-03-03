@@ -1,0 +1,449 @@
+{
+  "meta": {
+    "system": "Nova Microfinance – Helaplus / Mifos X Clone",
+    "generatedDate": "2026-03-03",
+    "version": "1.0.0",
+    "description": "Consolidated issues register mapped to Mifos/Fineract codebase components"
+  },
+  "issues": [
+    {
+      "id": "ISS-001",
+      "domain": "Core Banking",
+      "category": "Loan Logic",
+      "title": "Top-Up Loan Logic Error – Deducts Principal AND Future Interest",
+      "priority": "CRITICAL",
+      "system": "Helaplus – Loan Disbursement",
+      "description": "When processing top-up loan, system deducts BOTH outstanding principal AND outstanding interest for remaining period instead of principal only. Creates artificial debt on new loan.",
+      "businessImpact": "Incorrect loan balances; client disputes; portfolio distortion; interest income projection errors",
+      "rootCause": "Top-up computation logic includes future interest in offset calculation. Confirmed on client Lubega Kenneth.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "package": "org.apache.fineract.portfolio.loanaccount",
+        "relevantClasses": [
+          "LoanApplicationWritePlatformServiceJpaRepositoryImpl – disburseLoan()",
+          "LoanWritePlatformServiceJpaRepositoryImpl – disburseLoan()",
+          "DisburseLoanCommandHandler",
+          "LoanRepaymentScheduleInstallment – getInterestOutstanding()",
+          "LoanScheduleGenerator – computeInterestForPeriod()"
+        ],
+        "suspectedMethod": "calculateTopUpAmount() / getOutstandingAmountForTopUp()",
+        "frontendComponent": "MIFOS-X-web-app/src/app/loans/create-loans-account/"
+      },
+      "suggestedFix": "Adjust top-up logic: offset only outstanding principal. Use getLoanSummary().getPrincipalOutstanding() not getTotalOutstanding(). Reverse affected cases.",
+      "status": "ESCALATED",
+      "assignedTo": "Leo/Zayyad"
+    },
+    {
+      "id": "ISS-004",
+      "domain": "Core Banking",
+      "category": "Loan Management",
+      "title": "Boda Repossession Module Missing – 22 Active bikes should be Repossessed",
+      "priority": "HIGH",
+      "system": "Helaplus – Asset Management",
+      "description": "No module for Active→Repossessed bucket transfer. 22 repossessed bikes still showing as Active, causing arrears escalation.",
+      "businessImpact": "PAR distortion (22 cases); incorrect arrears; misleading portfolio reports",
+      "rootCause": "No loan status bucket for Repossessed. Fortune has similar setup (per Zayyad).",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "package": "org.apache.fineract.portfolio.loanaccount",
+        "relevantClasses": [
+          "LoanStatus enum – needs REPOSSESSED status",
+          "LoanWritePlatformServiceJpaRepositoryImpl – chargeOffLoan()",
+          "ChargeOffLoanCommandHandler",
+          "LoanTransaction – createRepossessionTransaction()",
+          "ProvisioningEntriesApiResource – provisioning logic"
+        ],
+        "frontendComponent": "MIFOS-X-web-app/src/app/loans/loans-view/general-tab/"
+      },
+      "suggestedFix": "1) Add REPOSSESSED status to LoanStatus enum. 2) Create RepossessLoanCommandHandler. 3) Configure accounting treatment (debit Repossessed Asset, credit NPL bucket). 4) Transfer 22 cases via batch job.",
+      "status": "AWAITING DEV",
+      "assignedTo": "Leo/Zayyad"
+    },
+    {
+      "id": "ISS-006",
+      "domain": "Core Banking",
+      "category": "Standing Instructions",
+      "title": "Standing Instructions Auto-Pay Before Physical Deposit – Cash Flow Distortion",
+      "priority": "CRITICAL",
+      "system": "Helaplus – Standing Instructions",
+      "description": "Standing instructions auto-pay loans from savings BEFORE physical deposits are made. Trigger fires on book balance not confirmed deposits.",
+      "businessImpact": "Cash-flow distortion; operational confusion; audit risk; artificial repayments",
+      "rootCause": "Standing instruction trigger logic fires on book balance, not confirmed/cleared deposits.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "package": "org.apache.fineract.portfolio.loanaccount",
+        "relevantClasses": [
+          "StandingInstructionJobLauncherTasklet – executeInstruction()",
+          "AccountTransferStandingInstructionService – executeStandingInstruction()",
+          "SavingsAccountDomainServiceJpaRepository – isWithdrawalAllowed()",
+          "SavingsAccount – getWithdrawableBalance()"
+        ],
+        "frontendComponent": "MIFOS-X-web-app/src/app/loans/loans-view/standing-instructions-tab/"
+      },
+      "suggestedFix": "Modify trigger logic: check deposit confirmation flag before executing. Add 'depositConfirmed' boolean on SavingsAccountTransaction. Disable auto-standing-instruction execution until deposit clears. Add config flag per product.",
+      "status": "IDENTIFIED",
+      "assignedTo": "Leo/Zayyad"
+    },
+    {
+      "id": "ISS-010",
+      "domain": "Core Banking",
+      "category": "Accounting",
+      "title": "Manual Disbursement Not Appearing in GL/Ledgers",
+      "priority": "CRITICAL",
+      "system": "Helaplus – GL Module",
+      "description": "Manual disbursements not appearing in ledgers or accounting records. GL posting logic doesn't capture manual disbursement transactions.",
+      "businessImpact": "Accounting gaps; audit trail issues; unreconciled cash movements",
+      "rootCause": "GL posting logic bypassed for manual disbursement path.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "package": "org.apache.fineract.portfolio.loanaccount",
+        "relevantClasses": [
+          "LoanJournalEntryPoster – postJournalEntries()",
+          "LoanWritePlatformServiceJpaRepositoryImpl – disburseLoan()",
+          "AccountingProcessorForLoan – createJournalEntriesForLoan()",
+          "LoanTransactionToRepaymentScheduleMapper"
+        ],
+        "frontendComponent": "MIFOS-X-web-app/src/app/accounting/create-journal-entry/"
+      },
+      "suggestedFix": "Ensure disburseLoan() always calls postJournalEntries() regardless of manual/automated path. Add audit flag. Backfill missing GL entries for historical manual disbursements.",
+      "status": "IDENTIFIED",
+      "assignedTo": "Leo/Zayyad"
+    },
+    {
+      "id": "ISS-011",
+      "domain": "Core Banking",
+      "category": "Process",
+      "title": "Savings-to-Loan Offset Process Undefined – Wallet Fund Transfer",
+      "priority": "MEDIUM",
+      "system": "Helaplus – Wallet/Loan",
+      "description": "No standard process for transferring wallet funds to clear loan balances. Cases: Anyayo Doreen, Adongo Winnie.",
+      "businessImpact": "Delayed closures; manual workarounds; inconsistent treatment; GL mismatches",
+      "rootCause": "No automated or documented workflow exists for wallet-to-loan offset.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "package": "org.apache.fineract.portfolio",
+        "relevantClasses": [
+          "DisburseLoanToSavingsCommandHandler",
+          "AccountTransferWritePlatformService – transferFunds()",
+          "LoanWritePlatformServiceJpaRepositoryImpl – makeRepayment()",
+          "SavingsAccountWritePlatformService – withdraw()",
+          "PortfolioAccountData"
+        ],
+        "frontendComponent": "MIFOS-X-web-app/src/app/account-transfers/"
+      },
+      "suggestedFix": "Implement wallet-to-loan offset workflow: 1) Debit wallet savings account. 2) Credit loan account as repayment. 3) Post corresponding GL entries. 4) Add UI workflow in account-transfers. Define approval process.",
+      "status": "PENDING GUIDANCE",
+      "assignedTo": "Leo → Sharon"
+    },
+    {
+      "id": "ISS-013",
+      "domain": "Core Banking",
+      "category": "Loan Management",
+      "title": "Loans Running That Should Be Frozen/Restructured",
+      "priority": "MEDIUM",
+      "system": "Helaplus – Loan Status",
+      "description": "Active loans that should have been frozen or restructured still running and accruing interest.",
+      "businessImpact": "Portfolio distortion; incorrect interest accrual; audit exposure",
+      "rootCause": "No freeze status mechanism in current configuration.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "package": "org.apache.fineract.portfolio.loanaccount",
+        "relevantClasses": [
+          "LoanStatus enum – needs FROZEN/HOLD status",
+          "LoanInterestPauseApiResource – createInterestPause()",
+          "LoanInterestPauseService",
+          "LoanWritePlatformServiceJpaRepositoryImpl – updateLoanStatus()",
+          "RescheduleLoansApiResource"
+        ],
+        "frontendComponent": "MIFOS-X-web-app/src/app/loans/loans-view/reschedule-loan-tab/"
+      },
+      "suggestedFix": "Leverage existing LoanInterestPauseApiResource. Add FROZEN status. Create batch identification job for loans meeting freeze criteria. Add UI control for authorized freeze action.",
+      "status": "IDENTIFIED",
+      "assignedTo": "Leo/Zayyad"
+    },
+    {
+      "id": "ISS-HUB-001",
+      "domain": "HUB Reconciliation",
+      "category": "Payment Processing",
+      "title": "All 3 Payment Action Buttons Fail – Undefined $loan Variable",
+      "priority": "CRITICAL",
+      "system": "Helaplus HUB – PaymentsController.php",
+      "description": "When processing repayments from uploaded MTN/Airtel/YO! statements, all payment buttons throw: 'Undefined variable: $loan in PaymentsController.php line 977'.",
+      "businessImpact": "Incomplete reconciliation workflow; all 3 providers unable to be reconciled through the HUB",
+      "rootCause": "Undefined $loan variable in processLoan() method called by replayUploadedPayments().",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "Helaplus HUB (PHP layer)",
+        "file": "PaymentsController.php:977",
+        "method": "processLoan() / replayUploadedPayments()"
+      },
+      "suggestedFix": "Initialize $loan = null before conditional block. Add null check before usage. Validate loan lookup returns valid object before calling processLoan(). Add error handling for missing loan reference.",
+      "apiSample": {
+        "method": "POST",
+        "endpoint": "/api/v1/loans/{loanId}/transactions?command=repayment",
+        "body": {
+          "dateFormat": "dd MMMM yyyy",
+          "locale": "en",
+          "transactionDate": "03 March 2026",
+          "transactionAmount": 50000,
+          "paymentTypeId": 1,
+          "note": "MTN Mobile Money reconciliation"
+        }
+      },
+      "status": "ESCALATED",
+      "assignedTo": "Leo"
+    },
+    {
+      "id": "ISS-HUB-002",
+      "domain": "HUB Reconciliation",
+      "category": "Statement Upload",
+      "title": "Airtel Withdraw Transaction Handling Missing in CSV Parser",
+      "priority": "HIGH",
+      "system": "Helaplus HUB – CSV Parser",
+      "description": "Airtel statements cannot upload if they contain withdraw transactions. MTN auto-excludes these but Airtel parser does not.",
+      "businessImpact": "Manual CSV cleanup required before each upload; error-prone process",
+      "rootCause": "Airtel CSV parser missing transaction type filter logic that MTN parser has.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "Helaplus HUB (PHP layer)",
+        "file": "AirtelCsvParser.php / MtnCsvParser.php",
+        "method": "parse() – filter by transaction type"
+      },
+      "suggestedFix": "Copy MTN parser's transaction type exclusion logic into Airtel parser. Filter rows where transaction_type == 'WITHDRAW' or equivalent Airtel field. Add unit test for both parsers.",
+      "status": "NEW",
+      "assignedTo": "Leo"
+    },
+    {
+      "id": "ISS-HUB-003",
+      "domain": "HUB Reconciliation",
+      "category": "Statement Upload",
+      "title": "Airtel Date Parsing Error – Future Dates Appearing",
+      "priority": "HIGH",
+      "system": "Helaplus HUB – Date Parser",
+      "description": "Future dates appearing in uploaded Airtel statements (e.g., Nov 2026 for current transactions). Date format mismatch.",
+      "businessImpact": "Incorrect reconciliation timing; delayed payment matching",
+      "rootCause": "Date format mismatch between Airtel CSV format and HUB parser expectations.",
+      "suggestedFix": "Identify Airtel date format (likely DD/MM/YYYY vs MM/DD/YYYY or YY vs YYYY). Fix date parsing regex/format string. Add validation: reject dates > today + 1 day.",
+      "status": "NEW",
+      "assignedTo": "Leo"
+    },
+    {
+      "id": "ISS-HUB-004",
+      "domain": "HUB Reconciliation",
+      "category": "Statement Upload",
+      "title": "YO! Uganda CSV Upload Completely Fails",
+      "priority": "CRITICAL",
+      "system": "Helaplus HUB – CSV Parser",
+      "description": "YO! Uganda statements completely fail to upload. Parser cannot handle YO! CSV format.",
+      "businessImpact": "YO! provider reconciliation entirely unavailable",
+      "rootCause": "YO! CSV format structure totally differs from MTN/Airtel. No parser exists.",
+      "suggestedFix": "1) Obtain YO! CSV sample format. 2) Implement YoUgandaCsvParser class. 3) Map columns: reference_no, amount, phone, date, type. 4) Register parser in ParserFactory. 5) Add tests.",
+      "status": "NEW",
+      "assignedTo": "Leo"
+    },
+    {
+      "id": "ISS-HUB-006",
+      "domain": "HUB Reconciliation",
+      "category": "Payment Routing",
+      "title": "USSD Down Payment Misrouting to Existing Loans",
+      "priority": "HIGH",
+      "system": "Helaplus HUB – Payment Routing",
+      "description": "Down payments made via USSD for NEW loans being applied to EXISTING loans instead of new loan setup.",
+      "businessImpact": "Cross-account errors; client disputes; incorrect loan setup",
+      "rootCause": "Payment routing logic not distinguishing new loan down payments from existing loan repayments.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "relevantClasses": [
+          "LoanDownPaymentCommandHandler",
+          "LoanWritePlatformServiceJpaRepositoryImpl – makeDownPayment()"
+        ]
+      },
+      "suggestedFix": "Add payment_intent flag to USSD payload: 'down_payment' vs 'repayment'. Route based on flag + loan status check. If loan in APPROVED state, treat as down payment. If ACTIVE, treat as repayment.",
+      "status": "NEW",
+      "assignedTo": "Zayyad"
+    },
+    {
+      "id": "MF-001",
+      "domain": "Helaplus API",
+      "category": "Client Management",
+      "title": "Client Office Transfer Fails When transferDate Passed",
+      "priority": "MEDIUM",
+      "system": "Helaplus API – Client Transfer",
+      "description": "POST /api/v1/clients/{clientId}?command=transfer fails if transferDate is passed. Error: 'transferDate not supported'.",
+      "businessImpact": "Cannot schedule client transfers; system-dated only",
+      "rootCause": "Endpoint enforces system-dated transfers; no user-defined dates allowed.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-client",
+        "package": "org.apache.fineract.portfolio.client",
+        "relevantClasses": [
+          "ClientApiResource – transfer()",
+          "ClientWritePlatformServiceJpaRepositoryImpl – transferClientBetweenGroups()"
+        ]
+      },
+      "apiSample": {
+        "method": "POST",
+        "endpoint": "/api/v1/clients/{clientId}?command=transfer",
+        "body": {
+          "destinationGroupId": 2,
+          "transferActiveLoans": false,
+          "inheritDestinationGroupLoanOfficer": true,
+          "note": "Branch transfer"
+        },
+        "note": "Remove transferDate from payload – system auto-dates transfer"
+      },
+      "suggestedFix": "Remove transferDate from payload OR update ClientWritePlatformServiceJpaRepositoryImpl to accept optional transferDate parameter with validation.",
+      "status": "OPEN",
+      "assignedTo": "Zayyad"
+    },
+    {
+      "id": "MF-002",
+      "domain": "Helaplus API",
+      "category": "Product Config",
+      "title": "Product Accounting Mapping Fails – productToAccountMapping.not.found",
+      "priority": "HIGH",
+      "system": "Helaplus – Loan Products/GL Mapping",
+      "description": "System throws 'productToAccountMapping.not.found' despite all GL fields filled. Affects ALL HAOJUE, TVS, HONDA products.",
+      "businessImpact": "Blocks product configuration for multiple boda products",
+      "rootCause": "Missing/inactive GL accounts, Cash vs Accrual mismatch, or incomplete mapping payload.",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-accounting",
+        "package": "org.apache.fineract.accounting.producttoaccountmapping",
+        "relevantClasses": [
+          "ProductToGLAccountMappingWritePlatformServiceImpl – createLoanProductToGLAccountMapping()",
+          "ProductToGLAccountMappingReadPlatformServiceImpl – fetchAccountMappingDetailsForLoanProduct()",
+          "LoanProductAccountingParams enum – all required fields",
+          "LoanProductAccountingDataValidator"
+        ],
+        "frontendComponent": "MIFOS-X-web-app/src/app/products/"
+      },
+      "apiSample": {
+        "method": "PUT",
+        "endpoint": "/api/v1/loanproducts/{productId}",
+        "requiredGLMappings": {
+          "fundSourceAccountId": "<GL asset account>",
+          "loanPortfolioAccountId": "<GL loan portfolio account>",
+          "transfersInSuspenseAccountId": "<GL suspense account>",
+          "interestOnLoanAccountId": "<GL income account>",
+          "incomeFromFeeAccountId": "<GL fee income account>",
+          "incomeFromPenaltyAccountId": "<GL penalty income account>",
+          "writeOffAccountId": "<GL expense account>",
+          "overpaymentLiabilityAccountId": "<GL liability account>"
+        }
+      },
+      "suggestedFix": "1) Confirm accounting rule (Cash vs Accrual). 2) Verify all listed GL accounts are ACTIVE. 3) Check all 8 required mappings are present. 4) Review backend validation in LoanProductAccountingDataValidator.",
+      "status": "OPEN",
+      "assignedTo": "Zayyad"
+    },
+    {
+      "id": "RPT-001",
+      "domain": "Reporting",
+      "category": "Enhancement",
+      "title": "Aging Reports – No Date Range or 'As Of' Date Selection",
+      "priority": "HIGH",
+      "system": "Helaplus Reports",
+      "description": "Cannot select date range or 'as of' date for aging reports. Cannot view historical aging positions.",
+      "businessImpact": "Limited analysis capability; no historical trend view",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-report / mifos-reporting-plugin",
+        "relevantClasses": [
+          "ReportingProcessService – processRequest()",
+          "GenericDataService – retrieveGenericResultset()",
+          "Report SQL query – add WHERE clause for date parameter"
+        ],
+        "frontendComponent": "MIFOS-X-web-app/src/app/reports/"
+      },
+      "suggestedFix": "Add 'asOfDate' and optional 'fromDate' parameters to aging report SQL. Update ReportingProcessService to accept date parameters. Add date picker to report UI.",
+      "status": "ENHANCEMENT",
+      "assignedTo": "Zayyad"
+    },
+    {
+      "id": "RPT-003",
+      "domain": "Reporting",
+      "category": "Bug",
+      "title": "Aging Summary Returns Blank Output",
+      "priority": "HIGH",
+      "system": "Helaplus Reports",
+      "description": "Aging Summary report returns blank/empty output. Key management report completely non-functional.",
+      "businessImpact": "Key management report unavailable",
+      "rootCause": "Missing data aggregation in query logic or missing required parameter.",
+      "codebaseMapping": {
+        "repo": "mifos-reporting-plugin",
+        "file": "pentahoReports/AgingSummary.prpt",
+        "relevantClasses": [
+          "ReportingProcessService",
+          "PentahoReportingProcessServiceImpl – processRequest()"
+        ]
+      },
+      "suggestedFix": "1) Test report SQL directly against DB. 2) Check if required parameters are populated. 3) Verify data aggregation GROUP BY clauses. 4) Add PRPT debug logging.",
+      "status": "BUG",
+      "assignedTo": "Zayyad"
+    },
+    {
+      "id": "RPT-006",
+      "domain": "Reporting",
+      "category": "Enhancement",
+      "title": "No Portfolio Historical View / Point-in-Time Snapshot",
+      "priority": "MEDIUM",
+      "system": "Helaplus Reports",
+      "description": "Cannot view portfolio position as of selected historical date. No trend analysis capability.",
+      "businessImpact": "Blind spot for management; no trend analysis",
+      "codebaseMapping": {
+        "repo": "fineract_mifos_base",
+        "module": "fineract-loan",
+        "relevantClasses": [
+          "LoanReadPlatformService – retrieveAllLoans()",
+          "LoanSummaryData",
+          "LoanStatusMapper",
+          "PortfolioMetricsDashboardData (to be created)"
+        ]
+      },
+      "suggestedFix": "Implement point-in-time portfolio snapshot using LoanTransaction history. Query loan balances as of asOfDate from LoanRepaymentScheduleInstallment. Build portfolio snapshot API endpoint.",
+      "status": "ENHANCEMENT",
+      "assignedTo": "Zayyad"
+    },
+    {
+      "id": "RPT-008",
+      "domain": "Reporting",
+      "category": "Config",
+      "title": "Repayment Schedule Not Downloadable with Merchant Code & Brand Header",
+      "priority": "MEDIUM",
+      "system": "Helaplus Reports",
+      "description": "Users cannot download repayment plans that include merchant codes and Nova branded header.",
+      "businessImpact": "Client-facing documents lack branding; manual workaround required",
+      "codebaseMapping": {
+        "repo": "mifos-reporting-plugin",
+        "file": "pentahoReports/RepaymentSchedule.prpt",
+        "frontendComponent": "MIFOS-X-web-app/src/app/loans/loans-view/repayment-schedule-tab/"
+      },
+      "suggestedFix": "1) Update PRPT template to include Nova header/logo and merchant code field. 2) Pass merchant_code as parameter from loan product config. 3) Add download button to repayment-schedule-tab component.",
+      "status": "CONFIG",
+      "assignedTo": "Zayyad"
+    }
+  ],
+  "systemicPatterns": [
+    "No proper wallet accounting model – GL not linked to wallet operations",
+    "No central data warehouse – Metabase connected directly to operational DB",
+    "Manual intervention dependency – Loan officers using sheets outside system",
+    "Weak feedback loops – Credit analyst notes not reaching loan officers",
+    "GL mapping not formally audited – MF-002 pattern repeated across products",
+    "No loan lifecycle freeze mechanism – Loans running without control",
+    "Over-reliance on operational memory vs documented process",
+    "HUB CSV parsers inconsistent – each provider has different quality implementation",
+    "No reconciliation dashboard – collections vs disbursements vs GL alignment blind"
+  ],
+  "priorityMatrix": {
+    "CRITICAL": ["ISS-001", "ISS-006", "ISS-010", "ISS-HUB-001", "ISS-HUB-004"],
+    "HIGH": ["ISS-004", "ISS-HUB-002", "ISS-HUB-003", "ISS-HUB-006", "MF-002", "RPT-001", "RPT-003"],
+    "MEDIUM": ["ISS-011", "ISS-013", "MF-001", "RPT-006", "RPT-008"]
+  }
+}

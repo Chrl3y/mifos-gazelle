@@ -1,0 +1,25 @@
+{
+  "name": "mifos-system-doctor",
+  "version": "1.0.0",
+  "description": "MCP Server – System Doctor for Mifos X / Helaplus microfinance platform. Audit, scan, track, fix and scale.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --esm src/index.ts",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.0",
+    "dayjs": "^1.11.10",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": ["mifos", "fineract", "microfinance", "mcp", "system-doctor"],
+  "license": "MPL-2.0"
+}
