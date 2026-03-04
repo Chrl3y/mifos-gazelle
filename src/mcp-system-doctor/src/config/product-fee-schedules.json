@@ -1,0 +1,381 @@
+{
+  "_comment": "Nova Microfinance – Product Fee Schedule Configuration",
+  "_version": "1.0.0",
+  "_lastUpdated": "2026-03-03",
+  "_instructions": "calcType: 'fixed' | 'pct_loan' | 'pct_dp'. value: amount or decimal (0.02 = 2%). direction: 'DR' | 'CR'.",
+
+  "defaultFixedFees": {
+    "crbFee": 5000,
+    "applicationFee": 30000,
+    "formFee": 35000,
+    "trackingPayable": 180000
+  },
+
+  "products": {
+    "HAOJUE": {
+      "label": "HAOJUE Boda Loan",
+      "loanGlCode": "1101",
+      "currency": "UGX",
+      "downPaymentPct": 0.09,
+      "components": [
+        {
+          "name": "Bank/Airtel/MTN/YO Tracking Payable",
+          "glCode": "2010",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 180000,
+          "note": "Held until full disbursement confirmed"
+        },
+        {
+          "name": "Insurance Payable",
+          "glCode": "2020",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02,
+          "note": "2% of loan amount to insurer"
+        },
+        {
+          "name": "Loan Processing Fees",
+          "glCode": "4110",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02,
+          "note": "2% of loan amount"
+        },
+        {
+          "name": "Arrangement Fees",
+          "glCode": "4120",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02,
+          "note": "2% of loan amount"
+        },
+        {
+          "name": "Loan Application Fees",
+          "glCode": "4130",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 30000,
+          "note": "Fixed application fee"
+        },
+        {
+          "name": "Form / Intake Fees",
+          "glCode": "4140",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 35000,
+          "note": "Fixed form fee"
+        },
+        {
+          "name": "CRB Payable",
+          "glCode": "2030",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 5000,
+          "note": "Credit Reference Bureau check fee"
+        },
+        {
+          "name": "Loan Repayment Wallet",
+          "glCode": "1200",
+          "glType": "ASSET",
+          "direction": "CR",
+          "calcType": "remainder",
+          "value": 0,
+          "note": "Remainder after fees – applied to loan wallet/down payment portion"
+        }
+      ]
+    },
+
+    "SIMBA_BOSS_110": {
+      "label": "SIMBA BOSS 110 / UNION BOSS Loan",
+      "loanGlCode": "1102",
+      "currency": "UGX",
+      "downPaymentPct": 0.10,
+      "components": [
+        {
+          "name": "Bank/Airtel/MTN/YO Tracking Payable",
+          "glCode": "2010",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 180000
+        },
+        {
+          "name": "Insurance Payable",
+          "glCode": "2020",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Arrangement Fees",
+          "glCode": "4120",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.04
+        },
+        {
+          "name": "Loan Application Fees",
+          "glCode": "4130",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 30000
+        },
+        {
+          "name": "Form / Intake Fees",
+          "glCode": "4140",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 35000
+        },
+        {
+          "name": "CRB Payable",
+          "glCode": "2030",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 5000
+        },
+        {
+          "name": "Loan Repayment Wallet",
+          "glCode": "1200",
+          "glType": "ASSET",
+          "direction": "CR",
+          "calcType": "remainder",
+          "value": 0
+        }
+      ]
+    },
+
+    "SIMBA_RAPTOR": {
+      "label": "SIMBA RAPTOR Loan",
+      "loanGlCode": "1103",
+      "currency": "UGX",
+      "downPaymentPct": 0.10,
+      "components": [
+        {
+          "name": "Bank/Airtel/MTN/YO Tracking Payable",
+          "glCode": "2010",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 180000
+        },
+        {
+          "name": "Insurance Payable",
+          "glCode": "2020",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Arrangement Fees",
+          "glCode": "4120",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.04
+        },
+        {
+          "name": "CRB Payable",
+          "glCode": "2030",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 5000
+        },
+        {
+          "name": "Other Income",
+          "glCode": "4150",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.004,
+          "note": "~0.4% of loan amount"
+        },
+        {
+          "name": "Loan Application Fees",
+          "glCode": "4130",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 30000
+        },
+        {
+          "name": "Loan Repayment Wallet",
+          "glCode": "1200",
+          "glType": "ASSET",
+          "direction": "CR",
+          "calcType": "remainder",
+          "value": 0
+        }
+      ]
+    },
+
+    "TVS": {
+      "label": "TVS Boda Loan",
+      "loanGlCode": "1104",
+      "currency": "UGX",
+      "downPaymentPct": 0.10,
+      "components": [
+        {
+          "name": "Bank/Airtel/MTN/YO Tracking Payable",
+          "glCode": "2010",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 180000
+        },
+        {
+          "name": "Insurance Payable",
+          "glCode": "2020",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Loan Processing Fees",
+          "glCode": "4110",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Arrangement Fees",
+          "glCode": "4120",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Loan Application Fees",
+          "glCode": "4130",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 30000
+        },
+        {
+          "name": "Form / Intake Fees",
+          "glCode": "4140",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 35000
+        },
+        {
+          "name": "CRB Payable",
+          "glCode": "2030",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 5000
+        },
+        {
+          "name": "Loan Repayment Wallet",
+          "glCode": "1200",
+          "glType": "ASSET",
+          "direction": "CR",
+          "calcType": "remainder",
+          "value": 0
+        }
+      ]
+    },
+
+    "HONDA": {
+      "label": "HONDA Boda Loan",
+      "loanGlCode": "1105",
+      "currency": "UGX",
+      "downPaymentPct": 0.10,
+      "components": [
+        {
+          "name": "Bank/Airtel/MTN/YO Tracking Payable",
+          "glCode": "2010",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 180000
+        },
+        {
+          "name": "Insurance Payable",
+          "glCode": "2020",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Loan Processing Fees",
+          "glCode": "4110",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Arrangement Fees",
+          "glCode": "4120",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "pct_loan",
+          "value": 0.02
+        },
+        {
+          "name": "Loan Application Fees",
+          "glCode": "4130",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 30000
+        },
+        {
+          "name": "Form / Intake Fees",
+          "glCode": "4140",
+          "glType": "INCOME",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 35000
+        },
+        {
+          "name": "CRB Payable",
+          "glCode": "2030",
+          "glType": "LIABILITY",
+          "direction": "CR",
+          "calcType": "fixed",
+          "value": 5000
+        },
+        {
+          "name": "Loan Repayment Wallet",
+          "glCode": "1200",
+          "glType": "ASSET",
+          "direction": "CR",
+          "calcType": "remainder",
+          "value": 0
+        }
+      ]
+    }
+  },
+
+  "paymentChannels": {
+    "AIRTEL": { "glCode": "1010", "name": "Airtel Money Receipts" },
+    "MTN":    { "glCode": "1011", "name": "MTN MoMo Receipts" },
+    "YO":     { "glCode": "1012", "name": "YO! Uganda Receipts" },
+    "BANK":   { "glCode": "1000", "name": "Bank Account" },
+    "CASH":   { "glCode": "1001", "name": "Cash at Hand" }
+  }
+}
